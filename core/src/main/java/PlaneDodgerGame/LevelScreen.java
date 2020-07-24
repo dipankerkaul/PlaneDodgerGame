@@ -3,6 +3,7 @@ package PlaneDodgerGame;
 import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.Gdx;
 
 public class LevelScreen extends BaseScreen
 {   Plane plane;
@@ -10,6 +11,11 @@ public class LevelScreen extends BaseScreen
     float starSpawnInterval;
     int score;
     Label scoreLabel;
+    float enemyTimer;
+    float enemySpawnInterval;
+    float enemySpeed;
+    boolean gameOver;
+    BaseActor gameOverMessage;
 
     public void initialize() 
     {   new Sky(0,0, mainStage);
@@ -25,13 +31,21 @@ public class LevelScreen extends BaseScreen
         uiTable.pad(10);
         uiTable.add(scoreLabel);
         uiTable.row();
-        uiTable.add().expandY();
+        uiTable.add(gameOverMessage).expandY();
+        enemyTimer = 0;
+        enemySpeed = 100;
+        enemySpawnInterval = 3;
+        gameOver = false;
+        gameOverMessage = new BaseActor(0,0,uiStage);
+        gameOverMessage.loadTexture("game-over.png");
+        gameOverMessage.setVisible(false);
 
 
     }
 
     public void update(float dt)
-    {
+    {   if (gameOver)
+        return;
         starTimer += dt;
         if (starTimer > starSpawnInterval)
         {
@@ -47,7 +61,36 @@ public class LevelScreen extends BaseScreen
                 scoreLabel.setText( Integer.toString(score) );
             }
         }
-       
+        enemyTimer += dt;
+        if (enemyTimer > enemySpawnInterval)
+        {
+            Enemy enemy = new Enemy( 800, MathUtils.random(100,500), mainStage );
+            enemy.setSpeed(enemySpeed);
+            enemyTimer = 0;
+            enemySpawnInterval -= 0.10f;
+            enemySpeed += 10;
+            if (enemySpawnInterval < 0.5f)
+                enemySpawnInterval = 0.5f;
+            if (enemySpeed > 400)
+                enemySpeed = 400;
+        }
+        for (BaseActor enemy : BaseActor.getList(mainStage, Enemy.class))
+        {
+            if (plane.overlaps(enemy))
+            {
+                plane.remove();
+                gameOver = true;
+                gameOverMessage.setVisible(true);
+            }
+            if (enemy.getX() + enemy.getWidth() < 0)
+            {
+                score++;
+                scoreLabel.setText( Integer.toString(score) );
+                enemy.remove();
+            }
+        }
+
+
     }
 
     public boolean keyDown(int keyCode)
